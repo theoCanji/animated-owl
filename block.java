@@ -2,7 +2,7 @@ package projectTwo;
 
 import java.security.MessageDigest;
 
-public class block {
+public class Block {
     private String data;   
     private long timeStamp;
     private int nonce;
@@ -10,13 +10,13 @@ public class block {
     private String hash;
 
     public static void main (String[] args) {
-        block b = new block("Hello", "0");
+        Block b = new Block("Hello", "0");
         System.out.println(b.toString());
         System.out.println(b.calculateHash());
     }
 
     // Constructor
-    public block(String data, String previousHash) {
+    public Block(String data, String previousHash) {
         this.data = data;
         this.timeStamp = System.currentTimeMillis();
         this.nonce = 0;

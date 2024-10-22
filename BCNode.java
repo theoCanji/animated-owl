@@ -5,17 +5,28 @@ import java.util.ArrayList;
 public class BCNode{
 
     private final int N = 5;
-    private Arraylist<Block> blockchain = new Arraylist<Block>();
+    private ArrayList<Block> blockchain = new ArrayList<>();
 
-    public BCNode() {
+    public BCNode(int port, ArrayList<BCNode> connNodes) {
         blockchain.add(new Block("Genesis Block", "0"));
+        
+        ConnectionHandler handler = new ConnectionHandler(port, connNodes);
+        Thread h = new Thread(handler);
+        h.start();
+
+        for (int i = 0; i < connNodes.size(); i++) {
+            BCNodeThread nodeThread = new BCNodeThread(connNodes.get(i));
+            Thread t = new Thread(nodeThread);
+            t.start();
+        }
     }
 
     public boolean addBlock(Block b) {
         mineBlock(b);
-        System.out.println("Block added to the blockchain");
+        
         b.setPreviousHash(blockchain.get(blockchain.size() - 1).getHash());
         if(blockValidate(b)) {
+            System.out.println("Block added to the blockchain");
             blockchain.add(b);
             return true;
         }
@@ -52,5 +63,9 @@ public class BCNode{
         return "BCNode{" +
         "blockchain=" + blockchain +
         '}';
+    }
+
+    public static void main(String[] args) {
+        
     }
 }

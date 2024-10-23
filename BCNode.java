@@ -1,24 +1,43 @@
 package projectTwo;
 import java.util.ArrayList;
+import java.lang.Thread;
+import java.net.Socket;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 
 
 public class BCNode{
 
+
+    private final int PORT;
     private final int N = 5;
     private ArrayList<Block> blockchain = new ArrayList<>();
+    private Socket[] nodeSockets;
+    private ObjectInputStream[] ois;
+    private ObjectOutputStream[] oos;
 
     public BCNode(int port, ArrayList<BCNode> connNodes) {
+        PORT = port;
+        nodeSockets = new Socket[connNodes.size()];
+        
+        try {
+            for (int i = 0; i < connNodes.size(); i++) {
+                nodeSockets[i] = new Socket("localhost", connNodes.get(i).getPort());
+                ois[i] = new ObjectInputStream(nodeSockets[i].getInputStream());
+                oos[i] = new ObjectOutputStream(nodeSockets[i].getOutputStream());
+                
+            }
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+
+
         blockchain.add(new Block("Genesis Block", "0"));
         
         ConnectionHandler handler = new ConnectionHandler(port, connNodes);
-        Thread h = new Thread(handler);
-        h.start();
-
-        for (int i = 0; i < connNodes.size(); i++) {
-            BCNodeThread nodeThread = new BCNodeThread(connNodes.get(i));
-            Thread t = new Thread(nodeThread);
-            t.start();
-        }
+        Thread ch = new Thread(handler);
+        ch.start();
     }
 
     public boolean addBlock(Block b) {
@@ -63,6 +82,10 @@ public class BCNode{
         return "BCNode{" +
         "blockchain=" + blockchain +
         '}';
+    }
+
+    public int getPort() {
+        return PORT;
     }
 
     public static void main(String[] args) {

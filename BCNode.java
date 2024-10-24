@@ -1,9 +1,9 @@
-package projectTwo;
-import java.util.ArrayList;
-import java.lang.Thread;
-import java.net.Socket;
-import java.io.ObjectInputStream;
+package projectTwo; 
 import java.io.ObjectOutputStream;
+import java.io.ObjectInputStream;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.ArrayList;
 
 
 public class BCNode{
@@ -12,19 +12,18 @@ public class BCNode{
     private final int PORT;
     private final int N = 5;
     private ArrayList<Block> blockchain = new ArrayList<>();
-    private Socket[] nodeSockets;
-    private ObjectInputStream[] ois;
     private ObjectOutputStream[] oos;
 
     public BCNode(int port, ArrayList<BCNode> connNodes) {
         PORT = port;
-        nodeSockets = new Socket[connNodes.size()];
         
         try {
             for (int i = 0; i < connNodes.size(); i++) {
-                nodeSockets[i] = new Socket("localhost", connNodes.get(i).getPort());
-                ois[i] = new ObjectInputStream(nodeSockets[i].getInputStream());
-                oos[i] = new ObjectOutputStream(nodeSockets[i].getOutputStream());
+                Socket s = new Socket("localhost", connNodes.get(i).getPort());
+                oos[i] = new ObjectOutputStream(s.getOutputStream());
+                ReadHandler readHandler = new ReadHandler(connNodes.get(i).getPort(), new ObjectInputStream(s.getInputStream()));
+                Thread rh = new Thread(readHandler);
+                rh.start();
                 
             }
         }
@@ -35,7 +34,7 @@ public class BCNode{
 
         blockchain.add(new Block("Genesis Block", "0"));
         
-        ConnectionHandler handler = new ConnectionHandler(port, connNodes);
+        ConnectionHandler handler = new ConnectionHandler(port);
         Thread ch = new Thread(handler);
         ch.start();
     }

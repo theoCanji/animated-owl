@@ -26,7 +26,7 @@ public class ConnectionHandler implements Runnable {
                 int connPort = bcn.getPort();
                 connNodes.add(bcn);
                 System.out.println("Connected to " + bcn + " on port " + connPort);
-                ReadHandler readHandler = new ReadHandler(connPort, connNodes.getLast());
+                ReadHandler readHandler = new ReadHandler(connPort, ois);
                 Thread rh = new Thread(readHandler);
                 rh.start();
 

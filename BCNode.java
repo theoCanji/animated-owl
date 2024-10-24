@@ -1,7 +1,6 @@
 package projectTwo; 
-import java.io.ObjectOutputStream;
 import java.io.ObjectInputStream;
-import java.net.ServerSocket;
+import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.util.ArrayList;
 
@@ -12,7 +11,9 @@ public class BCNode{
     private final int PORT;
     private final int N = 5;
     private ArrayList<Block> blockchain = new ArrayList<>();
-    private ObjectOutputStream[] oos;
+
+    // arraylist of output streams to each connected nodes so that we can broadcast blocks to connected nodes when we need to
+    private ArrayList<ObjectOutputStream> oos;
 
     public BCNode(int port, ArrayList<BCNode> connNodes) {
         PORT = port;
@@ -20,8 +21,8 @@ public class BCNode{
         try {
             for (int i = 0; i < connNodes.size(); i++) {
                 Socket s = new Socket("localhost", connNodes.get(i).getPort());
-                oos[i] = new ObjectOutputStream(s.getOutputStream());
-                ReadHandler readHandler = new ReadHandler(connNodes.get(i).getPort(), new ObjectInputStream(s.getInputStream()));
+                oos.add(new ObjectOutputStream(s.getOutputStream()));
+                ReadHandler readHandler = new ReadHandler(connNodes.get(i).getPort(), new ObjectInputStream(s.getInputStream()), this);
                 Thread rh = new Thread(readHandler);
                 rh.start();
                 
@@ -31,10 +32,12 @@ public class BCNode{
             e.printStackTrace();
         }
 
-
-        blockchain.add(new Block("Genesis Block", "0"));
+        if(blockchain.size() == 0) {
+            blockchain.add(new Block("Genesis Block", "0"));
+        }
         
-        ConnectionHandler handler = new ConnectionHandler(port);
+        
+        ConnectionHandler handler = new ConnectionHandler(port, this);
         Thread ch = new Thread(handler);
         ch.start();
     }
@@ -46,9 +49,22 @@ public class BCNode{
         if(blockValidate(b)) {
             System.out.println("Block added to the blockchain");
             blockchain.add(b);
+            broadcastBlock(b);
             return true;
         }
         return false;
+    }
+
+    // broadcast block to all connected nodes
+    private void broadcastBlock(Block b) {
+        for (int i = 0; i < oos.size(); i++) {
+            try {
+                oos.get(i).writeObject(b);
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
     }
 
 
@@ -85,6 +101,14 @@ public class BCNode{
 
     public int getPort() {
         return PORT;
+    }
+
+    public ArrayList<Block> getBlockchain() {
+        return blockchain;
+    }
+
+    public void addOOStream(ObjectOutputStream oos) {
+        this.oos.add(oos);
     }
 
     public static void main(String[] args) {

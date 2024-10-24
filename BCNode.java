@@ -15,15 +15,30 @@ public class BCNode{
     // arraylist of output streams to each connected nodes so that we can broadcast blocks to connected nodes when we need to
     private ArrayList<ObjectOutputStream> oos;
 
-    public BCNode(int port, ArrayList<BCNode> connNodes) {
+    public BCNode(int port, ArrayList<Integer> remotePorts) {
         PORT = port;
         
         try {
-            for (int i = 0; i < connNodes.size(); i++) {
-                Socket s = new Socket("localhost", connNodes.get(i).getPort());
+            // connect to all nodes in the input list of nodes
+            for (int i = 0; i < remotePorts.size(); i++) {
+                Socket s = new Socket("localhost", remotePorts.get(i));
+
+                // if we don't have the blockchain yet get it from the first block we connect to
+                if (blockchain.isEmpty()) {
+                    ObjectInputStream ois = new ObjectInputStream(s.getInputStream());
+                    blockchain = (ArrayList<Block>)ois.readObject();
+                }
+
+                // adding output stream to the list of output streams so that we can later broadcast blocks to connected nodes
                 oos.add(new ObjectOutputStream(s.getOutputStream()));
-                ReadHandler readHandler = new ReadHandler(connNodes.get(i).getPort(), new ObjectInputStream(s.getInputStream()), this);
+
+                // creates a readhandler for each node we connect to
+                ReadHandler readHandler = new ReadHandler(new ObjectInputStream(s.getInputStream()), this);
+
+                // create thread for readhandler to run on
                 Thread rh = new Thread(readHandler);
+
+                // start the readhandler thread
                 rh.start();
                 
             }
@@ -32,20 +47,21 @@ public class BCNode{
             e.printStackTrace();
         }
 
-        if(blockchain.size() == 0) {
+        if(blockchain.isEmpty()) {
             blockchain.add(new Block("Genesis Block", "0"));
         }
         
-        
-        ConnectionHandler handler = new ConnectionHandler(port, this);
-        Thread ch = new Thread(handler);
+
+        ConnectionHandler connHandler = new ConnectionHandler(port, this);
+        Thread ch = new Thread(connHandler);
         ch.start();
     }
 
-    public boolean addBlock(Block b) {
-        mineBlock(b);
-        
+    // synchronized so that only one block can be added at a time and we don't have any race conditions
+    public synchronized boolean addBlock(Block b) {
         b.setPreviousHash(blockchain.get(blockchain.size() - 1).getHash());
+        mineBlock(b);
+
         if(blockValidate(b)) {
             System.out.println("Block added to the blockchain");
             blockchain.add(b);
@@ -59,6 +75,7 @@ public class BCNode{
     private void broadcastBlock(Block b) {
         for (int i = 0; i < oos.size(); i++) {
             try {
+                oos.get(i).reset();
                 oos.get(i).writeObject(b);
             }
             catch (Exception e) {
@@ -94,20 +111,16 @@ public class BCNode{
     }
 
     public String toString() {
-        return "BCNode{" +
-        "blockchain=" + blockchain +
+        return "Port: " + PORT +
+        " blockchain: " + blockchain +
         '}';
-    }
-
-    public int getPort() {
-        return PORT;
     }
 
     public ArrayList<Block> getBlockchain() {
         return blockchain;
     }
 
-    public void addOOStream(ObjectOutputStream oos) {
+    public void addObjectOutputStream(ObjectOutputStream oos) {
         this.oos.add(oos);
     }
 

@@ -16,34 +16,38 @@ public class BCNode{
     private ArrayList<Block> blockchain = new ArrayList<>();
 
     // arraylist of output streams to each connected nodes so that we can broadcast blocks to connected nodes when we need to
-    private ArrayList<ObjectOutputStream> oos;
+    private ArrayList<ObjectOutputStream> oos = new ArrayList<>();
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings("unchecked") //DO NOT REMOVE -- WILL BREAK CODE
     public BCNode(int port, List<Integer> remotePorts) {
         PORT = port;
-        
+
         try {
             // connect to all nodes in the input list of nodes
             for (int i = 0; i < remotePorts.size(); i++) {
                 Socket s = new Socket("localhost", remotePorts.get(i));
-
+                
+                ObjectInputStream ois = new ObjectInputStream(s.getInputStream());
                 // if we don't have the blockchain yet get it from the first block we connect to
                 if (blockchain.isEmpty()) {
-                    ObjectInputStream ois = new ObjectInputStream(s.getInputStream());
                     blockchain = (ArrayList<Block>)ois.readObject();
                 }
-
-                // adding output stream to the list of output streams so that we can later broadcast blocks to connected nodes
-                oos.add(new ObjectOutputStream(s.getOutputStream()));
+                else {
+                    // if we already have the blockchain, just read the blockchain from the connected node and discard it
+                    ois.readObject();
+                }
 
                 // creates a readhandler for each node we connect to
-                ReadHandler readHandler = new ReadHandler(new ObjectInputStream(s.getInputStream()), this);
+                ReadHandler readHandler = new ReadHandler(ois, this);
 
                 // create thread for readhandler to run on
                 Thread rh = new Thread(readHandler);
-
                 // start the readhandler thread
                 rh.start();
+
+                // adding output stream to the list of output streams so that we can later broadcast blocks to connected nodes
+                oos.add(new ObjectOutputStream(s.getOutputStream()));
+                System.out.println("ObjectOutputStream created for remote port: " + remotePorts.get(i));
                 
             }
         }
@@ -66,7 +70,6 @@ public class BCNode{
         b.setPreviousHash(blockchain.get(blockchain.size() - 1).getHash());
         mineBlock(b);
         
-        System.out.println("Block added to the blockchain");
         blockchain.add(b);
         broadcastBlock(b);
         return true;
@@ -74,6 +77,9 @@ public class BCNode{
 
     // broadcast block to all connected nodes
     private void broadcastBlock(Block b) {
+        if (oos.isEmpty()) {
+            return;
+        }
         for (int i = 0; i < oos.size(); i++) {
             try {
                 oos.get(i).reset();
@@ -124,7 +130,7 @@ public class BCNode{
         return blockchain;
     }
 
-    public synchronized void addObjectOutputStream(ObjectOutputStream oos) {
+    public void addObjectOutputStream(ObjectOutputStream oos) {
         this.oos.add(oos);
     }
 
@@ -143,11 +149,14 @@ public class BCNode{
         if (line != "") {
             String[] splitLine = line.split(" ");
             for (int i=0; i<splitLine.length; i++) {
+                System.out.println("Adding remote port: " + splitLine[i]);
                 remotePorts.add(Integer.parseInt(splitLine[i]));
             }
         }
         // Create the Node
+        System.out.println("Creating Node on port: " + myPort);
         BCNode n = new BCNode(myPort, remotePorts);
+        System.out.println("Node created on port: " + myPort);
         
         String ip = "";
         try {

@@ -11,6 +11,7 @@ public class ReadHandler implements  Runnable {
     private BCNode thisNode;
 
     public ReadHandler(ObjectInputStream ois, BCNode thisNode) {
+        this.thisNode = thisNode;
         OIS = ois;
     }
     
@@ -23,7 +24,6 @@ public class ReadHandler implements  Runnable {
 
                 // if the block is valid it will be added to the blockchain and broadcast to neighboring nodes
                 if (thisNode.blockValidate(b)) {
-                    
                     thisNode.addBlock(b);
                 }
             }

@@ -25,12 +25,8 @@ public class ConnectionHandler implements Runnable {
             ServerSocket ss = new ServerSocket(PORT);
             // infinite loop of waiting for connections
             while(true) {
-                System.out.println("Waiting for a call");
                 Socket s = ss.accept(); // blocking
-                System.out.println("Accepted");
 
-                // ois is used by the readhandler to listen for incoming blocks from the connected node
-                ObjectInputStream ois = new ObjectInputStream(s.getInputStream());
 
                 // send the blockchain to the connected node since that node is new and does not have the blockchain
                 // outside of this oos is only used by the BCNode to send blocks to connected nodes
@@ -38,15 +34,14 @@ public class ConnectionHandler implements Runnable {
                 oos.writeObject(NODE.getBlockchain());
                 NODE.addObjectOutputStream(oos);
 
+                // ois is used by the readhandler to listen for incoming blocks from the connected node
+                ObjectInputStream ois = new ObjectInputStream(s.getInputStream());
+
                 // start new readhandler thread to listen for added blocks from the connected node. Once a block is recieved, the block is validated and added to the blockchain and then broadcasted to all connected nodes.
                 ReadHandler readHandler = new ReadHandler(ois, NODE);
                 Thread rh = new Thread(readHandler);
                 rh.start();
 
-                // threads[i] = new Thread(new BCNodeThread(ss, connNodes.get(i)));
-                // System.out.println("Waiting for a call");
-                // nodes[i] = ss.accept(); // blocking
-                // System.out.println("Accepted");
             }
         }
         catch (Exception e) {

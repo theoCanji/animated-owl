@@ -1,19 +1,14 @@
 package projectTwo;
 
 import java.security.MessageDigest;
+import java.io.Serializable;
 
-public class Block {
+public class Block implements Serializable {
     private String data;   
     private long timeStamp;
     private int nonce;
     private String previousHash;
     private String hash;
-
-    public static void main (String[] args) {
-        Block b = new Block("Hello");
-        System.out.println(b.toString());
-        System.out.println(b.calculateHash());
-    }
 
     // Constructor
     public Block(String data) {

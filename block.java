@@ -10,17 +10,17 @@ public class Block {
     private String hash;
 
     public static void main (String[] args) {
-        Block b = new Block("Hello", "0");
+        Block b = new Block("Hello");
         System.out.println(b.toString());
         System.out.println(b.calculateHash());
     }
 
     // Constructor
-    public Block(String data, String previousHash) {
+    public Block(String data) {
         this.data = data;
         this.timeStamp = System.currentTimeMillis();
         this.nonce = 0;
-        this.previousHash = previousHash;
+        this.previousHash = "0";
         this.hash = this.calculateHash();
     }
 

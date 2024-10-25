@@ -4,31 +4,32 @@ import java.io.ObjectInputStream;
 // ReadHandler will listen for incoming blocks from connected nodes. Once a block is recieved, the block is validated and added to the blockchain and then broadcasted to all connected nodes.
 public class ReadHandler implements  Runnable {
 
-    private final int PORT;
-    private ObjectInputStream ois;
-    private BCNode thisNode;
-    private BCNode connNode;
+    // input stream to listen for incoming blocks from connected nodes
+    private final ObjectInputStream OIS;
 
-    public ReadHandler(int port, ObjectInputStream ois, BCNode thisNode) {
-        PORT = port;
-        this.ois = ois;
+    // reference to the node that this readhandler is associated with so that it can edit the blockchain
+    private BCNode thisNode;
+
+    public ReadHandler(ObjectInputStream ois, BCNode thisNode) {
+        OIS = ois;
     }
     
     @Override
     public void run() {
-        try {
-            while(true) {
-                Block b = (Block)ois.readObject();
-                if(thisNode.addBlock(b)) {
-                    // broadcast block to all connected nodes
-                    for (int i = 0; i < connNode.getConnNodes().size(); i++) {
-                        connNode.getOos()[i].writeObject(b);
-                    }
+        
+        while (true) {
+            try {
+                Block b = (Block)OIS.readObject();
+
+                // if the block is valid it will be added to the blockchain and broadcast to neighboring nodes
+                if (thisNode.blockValidate(b)) {
+                    
+                    thisNode.addBlock(b);
                 }
             }
-        }
-        catch (Exception e) {
-            e.printStackTrace();
+            catch (Exception e) {
+                e.printStackTrace();
+            }
         }
         
         

@@ -22,7 +22,10 @@ public class ReadHandler implements  Runnable {
                 Block b = (Block)OIS.readObject();
 
                 // if the block is valid it will be added to the blockchain and broadcast to neighboring nodes
-                thisNode.addBlock(b);
+                if (thisNode.blockValidate(b)) {
+                    
+                    thisNode.addBlock(b);
+                }
             }
             catch (Exception e) {
                 e.printStackTrace();

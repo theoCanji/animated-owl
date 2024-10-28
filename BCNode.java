@@ -7,6 +7,8 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+import java.net.SocketException;
+import java.io.IOException;
 
 
 public class BCNode{
@@ -14,11 +16,12 @@ public class BCNode{
     private final int PORT;
     private final int N = 5;
     private ArrayList<Block> blockchain = new ArrayList<>();
+    private ArrayList<Socket> sockets = new ArrayList<>(); 
 
     // arraylist of output streams to each connected nodes so that we can broadcast blocks to connected nodes when we need to
     private ArrayList<ObjectOutputStream> oos = new ArrayList<>();
 
-    @SuppressWarnings("unchecked") //DO NOT REMOVE -- WILL BREAK CODE
+    @SuppressWarnings("unchecked") 
     public BCNode(int port, List<Integer> remotePorts) {
         PORT = port;
 
@@ -26,7 +29,8 @@ public class BCNode{
             // connect to all nodes in the input list of nodes
             for (int i = 0; i < remotePorts.size(); i++) {
                 Socket s = new Socket("localhost", remotePorts.get(i));
-                
+                sockets.add(s); // Add the socket to the list
+
                 ObjectInputStream ois = new ObjectInputStream(s.getInputStream());
                 // if we don't have the blockchain yet get it from the first block we connect to
                 if (blockchain.isEmpty()) {
@@ -77,21 +81,34 @@ public class BCNode{
 
     // broadcast block to all connected nodes
     private void broadcastBlock(Block b) {
-        if (oos.isEmpty()) {
-            return;
-        }
         for (int i = 0; i < oos.size(); i++) {
             try {
                 oos.get(i).reset();
                 oos.get(i).writeObject(b);
-            }
-            catch (Exception e) {
+            } catch (SocketException se) {
+                // Handle the disconnected socket
+                System.out.println("A node has disconnected. Removing the node...");
+                removeNode(i); // Remove the disconnected node
+                i--; // Decrement i to stay in sync with the array after removal
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }
     }
 
-
+    // Synchronized removeNode for safe removal
+    public synchronized void removeNode(int index) {
+        try {
+            if (index < sockets.size() && index < oos.size()) {
+                sockets.get(index).close(); // Close the socket
+                sockets.remove(index); // Remove from the list
+                oos.remove(index);      // Remove the output stream
+                System.out.println("Node at index " + index + " removed.");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
     private void mineBlock(Block b) {
         String prefixZeros = new String(new char[N]).replace('\0', '0');

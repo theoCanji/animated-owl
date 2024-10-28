@@ -1,5 +1,8 @@
 package projectTwo;
 import java.io.ObjectInputStream;
+import java.io.EOFException;
+import java.net.SocketException;
+import java.io.IOException;
 
 // ReadHandler will listen for incoming blocks from connected nodes. Once a block is recieved, the block is validated and added to the blockchain and then broadcasted to all connected nodes.
 public class ReadHandler implements  Runnable {
@@ -17,23 +20,35 @@ public class ReadHandler implements  Runnable {
     
     @Override
     public void run() {
-        
-        while (true) {
-            try {
-                Block b = (Block)OIS.readObject();
-
-                // if the block is valid it will be added to the blockchain and broadcast to neighboring nodes
+        try {
+            while (true) {
+                Block b = (Block) OIS.readObject();
+    
+                // Validate and add the block to the blockchain
                 if (thisNode.blockValidate(b)) {
                     thisNode.addBlock(b);
                 }
             }
-            catch (Exception e) {
+        } 
+        catch (EOFException | SocketException e) {
+            // The other node disconnected or was killed
+            System.out.println("Connection lost. Stopping ReadHandler for this connection.");
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        } 
+        finally {
+            // Clean up resources if necessary
+            try {
+                OIS.close();
+            } 
+            catch (IOException e) {
                 e.printStackTrace();
             }
         }
-        
-        
     }
+    
+
 
     
 }

@@ -25,9 +25,7 @@ public class ConnectionHandler implements Runnable {
             ServerSocket ss = new ServerSocket(PORT);
             // infinite loop of waiting for connections
             while(true) {
-                Socket s = ss.accept(); // blocking
-
-
+                Socket s = ss.accept(); // blocking call, waits for a connection to be made
                 // send the blockchain to the connected node since that node is new and does not have the blockchain
                 // outside of this oos is only used by the BCNode to send blocks to connected nodes
                 ObjectOutputStream oos = new ObjectOutputStream(s.getOutputStream());
